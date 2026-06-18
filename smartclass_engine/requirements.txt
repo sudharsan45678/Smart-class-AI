@@ -6,6 +6,5 @@ torch
 streamlit
 pandas
 plotly
-pyaudio
 fer
 tensorflow
