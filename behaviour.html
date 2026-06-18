@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Behaviour Analysis | SmartClass AI</title>
+    <meta name="description"
+        content="Real-time AI-powered student behaviour, engagement, and attention analysis dashboard for educators." />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/behaviour.css" />
+    <link rel="stylesheet" href="css/realtime.css" />
+    <!-- jsPDF for PDF report export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* ── Full-screen layout overrides ── */
+        .behaviour-layout {
+            display: block !important;
+        }
+
+        .b-sidebar {
+            display: none !important;
+        }
+
+        .b-main {
+            padding: 20px 32px 32px;
+        }
+
+        /* ── Top status bar ── */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 14px 24px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .status-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #5B50F0, #00AADF, #00C88A);
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        }
+
+        .status-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .status-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .session-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(108, 99, 255, 0.1);
+            border: 1px solid rgba(108, 99, 255, 0.25);
+            border-radius: 50px;
+            padding: 6px 14px;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .session-pill-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .session-pill-dot.live {
+            background: var(--green);
+            animation: pulse-ring 1.5s ease-out infinite;
+        }
+
+        .timer-pill {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--purple-light);
+            letter-spacing: 0.05em;
+        }
+
+        /* ── Big metric cards (4 across) ── */
+        .metric-grid-full {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card-big {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: transform var(--trans-fast), border-color var(--trans-fast);
+        }
+
+        .metric-card-big:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-glass);
+        }
+
+        .metric-card-big::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--card-accent);
+        }
+
+        .metric-card-big .lbl {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .metric-card-big .val {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .metric-card-big .note {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .metric-card-big .ico {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            font-size: 2rem;
+            opacity: 0.25;
+        }
+
+        /* Live recording blink */
+        .rec-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--red);
+            margin-right: 6px;
+            animation: blink-rec 1s ease-in-out infinite;
+        }
+
+        @keyframes blink-rec {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.2
+            }
+        }
+
+        /* ── Camera floating panel ── */
+        .cam-float {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 320px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-xl);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            z-index: 900;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .cam-float.collapsed {
+            width: 200px;
+        }
+
+        .cam-float-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            background: rgba(108, 99, 255, 0.08);
+            border-bottom: 1px solid var(--border-subtle);
+            cursor: pointer;
+        }
+
+        .cam-float-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .cam-float-body {
+            padding: 12px;
+            position: relative;
+        }
+
+        .cam-float video,
+        .cam-float canvas {
+            width: 100%;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .cam-float-placeholder {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .cam-float-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .cam-float-metric {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            padding: 8px 6px;
+            text-align: center;
+        }
+
+        .cam-float-metric .cfv {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--purple-light);
+        }
+
+        .cam-float-metric .cfl {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .cam-expr-bars {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .expr-row-sm {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+        }
+
+        .expr-track-sm {
+            flex: 1;
+            height: 5px;
+            background: rgba(0, 0, 0, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .expr-fill-sm {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+
+        .expr-label-sm {
+            width: 52px;
+            color: var(--text-muted);
+        }
+
+        .expr-pct-sm {
+            width: 30px;
+            text-align: right;
+            color: var(--text-muted);
+        }
+
+        /* ── Charts area ── */
+        .charts-area {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        /* ── Live analysis log ── */
+        .analysis-log {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .analysis-log-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .analysis-log-body {
+            max-height: 260px;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .log-entry {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            margin-bottom: 4px;
+            background: var(--bg-secondary);
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .log-time {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            font-family: monospace;
+        }
+
+        .log-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 20px;
+            flex-shrink: 0;
+        }
+
+        .log-msg {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            flex: 1;
+        }
+
+        .log-pct {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 0.88rem;
+        }
+
+        @media (max-width: 1200px) {
+            .metric-grid-full {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .charts-area {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .cam-float {
+                display: none;
+            }
+        }
+
+        /* ── Export dropdown item ── */
+        .export-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 12px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.15s;
+        }
+
+        .export-dropdown-item:hover {
+            background: rgba(108, 99, 255, 0.1);
+        }
+
+        /* ── Analysis export modal btn ── */
+        .analysis-export-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            color: var(--text-primary);
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .analysis-export-btn:hover {
+            background: rgba(108, 99, 255, 0.1);
+            border-color: rgba(108, 99, 255, 0.3);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+
+<body class="behaviour-page">
+
+    <!-- ── NAVBAR ── -->
+    <nav class="navbar scrolled" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 36 36" fill="none">
+                        <rect width="36" height="36" rx="10" fill="url(#bGrad)" />
+                        <path d="M10 18 Q18 8 26 18 Q18 28 10 18Z" fill="white" opacity="0.9" />
+                        <circle cx="18" cy="18" r="4" fill="white" />
+                        <defs>
+                            <linearGradient id="bGrad" x1="0" y1="0" x2="36" y2="36">
+                                <stop offset="0%" stop-color="#6C63FF" />
+                                <stop offset="100%" stop-color="#00D4FF" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span class="brand-name">SmartClass<em>AI</em></span>
+            </a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="behaviour.html" class="active" style="color:var(--purple-light)">Student Behaviour
+                        Analysis</a></li>
+                <li><a href="lecture.html">Lecture Note Engine</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="btn btn-danger" id="stopSessionBtn" onclick="toggleSession()" style="display:none">⏹ Stop
+                    Session</button>
+                <button class="btn btn-success" id="startSessionBtn" onclick="toggleSession()">▶ Start Session</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── SUB NAV ── -->
+    <div class="sub-nav" style="padding-top:70px">
+        <a href="#" class="active" onclick="showView('overview',this)" id="nav-overview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+            </svg>
+            Overview
+        </a>
+        <a href="#" onclick="showView('heatmap',this)" id="nav-heatmap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <circle cx="12" cy="12" r="6" />
+                <circle cx="12" cy="12" r="2" />
+            </svg>
+            Heatmap
+        </a>
+        <a href="#" onclick="showView('students',this)" id="nav-students">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Students
+        </a>
+        <a href="#" onclick="showView('reports',this)" id="nav-reports">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+            </svg>
+            Reports
+        </a>
+        <a href="#" onclick="showView('settings',this)" id="nav-settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3" />
+                <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+            Settings
+        </a>
+    </div>
+
+    <!-- ── MAIN CONTENT (full width) ── -->
+    <div class="behaviour-layout">
+        <main class="b-main">
+
+            <!-- Status bar -->
+            <div class="status-bar">
+                <div class="status-bar-left">
+                    <div class="session-pill">
+                        <div class="session-pill-dot" id="sessionDot"></div>
+                        <span id="sessionLabel" style="color:var(--text-muted)">NO SESSION</span>
+                    </div>
+                    <div style="font-weight:700;color:var(--text-primary)" id="sessionName">—</div>
+                    <div style="font-size:0.8rem;color:var(--text-muted)" id="sessionMeta">Start a session to begin
+                        real-time analysis</div>
+                    <div class="timer-pill" id="sessionTimer">00:00</div>
+                </div>
+                <div class="status-bar-right">
+                    <div id="recIndicator"
+                        style="display:none;align-items:center;font-size:0.82rem;color:var(--red);font-weight:700">
+                        <span class="rec-dot"></span>RECORDING TO DB
+                    </div>
+                    <button class="btn btn-ghost" style="font-size:0.82rem" onclick="toggleCamPanel()">📷
+                        Camera</button>
+                    <div style="position:relative;display:inline-block">
+                        <button class="btn btn-primary" style="font-size:0.82rem;gap:6px"
+                            onclick="toggleExportDropdown()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                style="width:14px;height:14px">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            Export ▾
+                        </button>
+                        <div id="exportDropdown" style="display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:500;
+                             background:var(--bg-card);border:1px solid var(--border-glass);border-radius:12px;
+                             padding:8px;min-width:200px;box-shadow:0 12px 40px rgba(0,0,0,0.4)">
+                            <button class="export-dropdown-item" onclick="exportAnalysisPDF();toggleExportDropdown()">
+                                <span>📄</span> PDF Report
+                                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Full
+                                    analysis</span>
+                            </button>
+                            <button class="export-dropdown-item" onclick="exportStudentCSV();toggleExportDropdown()">
+                                <span>📊</span> CSV Data
+                                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">All
+                                    students</span>
+                            </button>
+                            <div style="border-top:1px solid var(--border-subtle);margin:4px 0"></div>
+                            <button class="export-dropdown-item"
+                                onclick="showAnalysisExportModal();toggleExportDropdown()">
+                                <span>↗️</span> More Formats…
+                                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">JSON,
+                                    Excel</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alert Banner -->
+            <div class="alert-banner" id="alertBanner" style="display:none;margin-bottom:16px">
+                <span class="alert-icon">⚠️</span>
+                <span class="alert-text"><strong>Attention Alert:</strong> <span id="alertMsg">Low engagement
+                        detected.</span></span>
+                <button class="alert-close"
+                    onclick="document.getElementById('alertBanner').style.display='none'">✕</button>
+            </div>
+
+            <!-- ── OVERVIEW VIEW ── -->
+            <div id="view-overview">
+
+                <!-- 4 BIG Metric Cards -->
+                <div class="metric-grid-full">
+                    <div class="metric-card-big" style="--card-accent:linear-gradient(90deg,#6C63FF,#9B93FF)">
+                        <div class="ico">📊</div>
+                        <div class="lbl">Avg Engagement</div>
+                        <div class="val" id="metricEngagement">—</div>
+                        <div class="note" id="metricEngagementChange">Start a session to analyse</div>
+                    </div>
+                    <div class="metric-card-big" style="--card-accent:linear-gradient(90deg,#00D4FF,#00FFB3)">
+                        <div class="ico">👁️</div>
+                        <div class="lbl">Avg Attention</div>
+                        <div class="val" id="metricAttention">—</div>
+                        <div class="note" id="metricAttentionChange">—</div>
+                    </div>
+                    <div class="metric-card-big" style="--card-accent:linear-gradient(90deg,#00FFB3,#6C63FF)">
+                        <div class="ico">🙋</div>
+                        <div class="lbl">Participation</div>
+                        <div class="val" id="metricParticipation">—</div>
+                        <div class="note" id="metricParticipationChange">—</div>
+                    </div>
+                    <div class="metric-card-big" style="--card-accent:linear-gradient(90deg,#FF6B6B,#FFB347)">
+                        <div class="ico">⚠️</div>
+                        <div class="lbl">At-Risk Students</div>
+                        <div class="val" id="metricAtRisk">—</div>
+                        <div class="note" id="metricAtRiskChange">—</div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="charts-area">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div>
+                                <div class="chart-title">Engagement &amp; Attention Timeline</div>
+                                <div class="chart-subtitle">Real-time recording — updated every 4 seconds</div>
+                            </div>
+                            <div class="tab-nav">
+                                <button class="tab-btn active" onclick="switchChartRange('30m',this)">30m</button>
+                                <button class="tab-btn" onclick="switchChartRange('60m',this)">60m</button>
+                                <button class="tab-btn" onclick="switchChartRange('today',this)">Today</button>
+                            </div>
+                        </div>
+                        <canvas id="engagementChart" style="width:100%"></canvas>
+                        <div style="display:flex;gap:20px;margin-top:12px">
+                            <span
+                                style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text-muted)"><span
+                                    style="width:12px;height:3px;background:#6C63FF;display:inline-block;border-radius:2px"></span>Engagement</span>
+                            <span
+                                style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text-muted)"><span
+                                    style="width:12px;height:3px;background:#00D4FF;display:inline-block;border-radius:2px"></span>Attention</span>
+                            <span
+                                style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text-muted)"><span
+                                    style="width:12px;height:3px;background:#00FFB3;display:inline-block;border-radius:2px"></span>Participation</span>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div>
+                                <div class="chart-title">Class Room Focus State</div>
+                                <div class="chart-subtitle">Live status</div>
+                            </div>
+                        </div>
+                        <div
+                            style="display:flex;flex-direction:column;align-items:center;margin-top:20px;margin-bottom:20px">
+                            <div style="display:flex;gap:20px;justify-content:center;width:100%">
+                                <div
+                                    style="text-align:center;background:var(--bg-secondary);padding:20px;border-radius:12px;width:30%">
+                                    <div style="font-size:2rem;margin-bottom:8px">✅</div>
+                                    <div style="font-size:1.5rem;font-weight:700;color:var(--green);font-family:'Outfit'"
+                                        id="donutStatus1">0</div>
+                                    <div style="font-size:0.75rem;color:var(--text-muted)">Listening</div>
+                                </div>
+                                <div
+                                    style="text-align:center;background:var(--bg-secondary);padding:20px;border-radius:12px;width:30%">
+                                    <div style="font-size:2rem;margin-bottom:8px">⚡</div>
+                                    <div style="font-size:1.5rem;font-weight:700;color:var(--orange);font-family:'Outfit'"
+                                        id="donutStatus2">0</div>
+                                    <div style="font-size:0.75rem;color:var(--text-muted)">Distracted</div>
+                                </div>
+                                <div
+                                    style="text-align:center;background:var(--bg-secondary);padding:20px;border-radius:12px;width:30%">
+                                    <div style="font-size:2rem;margin-bottom:8px">❌</div>
+                                    <div style="font-size:1.5rem;font-weight:700;color:var(--red);font-family:'Outfit'"
+                                        id="donutStatus3">0</div>
+                                    <div style="font-size:0.75rem;color:var(--text-muted)">Turned Away</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── LISTENING ANALYSIS PANEL ── -->
+                <div id="listeningPanel" style="display:none;background:var(--bg-card);border:1px solid var(--border-subtle);
+                     border-radius:var(--radius-xl);padding:24px;margin-bottom:4px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                        <div>
+                            <div style="font-size:1rem;font-weight:800;color:var(--text-primary);margin-bottom:4px">
+                                🎧 Listening Analysis
+                            </div>
+                            <div style="font-size:0.78rem;color:var(--text-muted)">Real-time body & engagement-based
+                                classification • <span id="lpFaces">0</span> students detected</div>
+                        </div>
+                        <div
+                            style="background:rgba(91,80,240,0.08);border:1px solid rgba(91,80,240,0.2);border-radius:8px;padding:6px 14px;font-size:0.8rem;font-weight:700;color:var(--purple)">
+                            LIVE
+                        </div>
+                    </div>
+                    <!-- Three category cards -->
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+                        <!-- Listening -->
+                        <div
+                            style="background:rgba(0,200,138,0.06);border:1px solid rgba(0,200,138,0.2);border-radius:16px;padding:20px;text-align:center">
+                            <div style="font-size:2rem;margin-bottom:6px">✅</div>
+                            <div style="font-family:'Outfit',sans-serif;font-size:2rem;font-weight:800;color:var(--green);line-height:1"
+                                id="lpListening">0%</div>
+                            <div
+                                style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-top:6px;text-transform:uppercase;letter-spacing:0.05em">
+                                Listening</div>
+                            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">Engaged & attentive
+                            </div>
+                        </div>
+                        <!-- Partial -->
+                        <div
+                            style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:16px;padding:20px;text-align:center">
+                            <div style="font-size:2rem;margin-bottom:6px">⚡</div>
+                            <div style="font-family:'Outfit',sans-serif;font-size:2rem;font-weight:800;color:var(--orange);line-height:1"
+                                id="lpPartial">0%</div>
+                            <div
+                                style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-top:6px;text-transform:uppercase;letter-spacing:0.05em">
+                                Partial</div>
+                            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">Mildly distracted</div>
+                        </div>
+                        <!-- Not Listening -->
+                        <div
+                            style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:16px;padding:20px;text-align:center">
+                            <div style="font-size:2rem;margin-bottom:6px">❌</div>
+                            <div style="font-family:'Outfit',sans-serif;font-size:2rem;font-weight:800;color:var(--red);line-height:1"
+                                id="lpNotList">0%</div>
+                            <div
+                                style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-top:6px;text-transform:uppercase;letter-spacing:0.05em">
+                                Not Listening</div>
+                            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">Disengaged</div>
+                        </div>
+                    </div>
+                    <!-- Stacked bars -->
+                    <div style="margin-bottom:12px">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                            <span style="font-size:0.78rem;color:var(--text-muted);width:110px">✅ Listening</span>
+                            <div
+                                style="flex:1;height:10px;background:rgba(0,0,0,0.06);border-radius:5px;overflow:hidden">
+                                <div id="lpBarL"
+                                    style="height:100%;width:0%;background:linear-gradient(90deg,#00C88A,#00AADF);border-radius:5px;transition:width 0.8s ease">
+                                </div>
+                            </div>
+                            <span id="lpListening2"
+                                style="font-size:0.75rem;font-weight:700;color:var(--green);width:36px;text-align:right">0%</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                            <span style="font-size:0.78rem;color:var(--text-muted);width:110px">⚡ Partial</span>
+                            <div
+                                style="flex:1;height:10px;background:rgba(0,0,0,0.06);border-radius:5px;overflow:hidden">
+                                <div id="lpBarP"
+                                    style="height:100%;width:0%;background:linear-gradient(90deg,#F59E0B,#EF4444);border-radius:5px;transition:width 0.8s ease">
+                                </div>
+                            </div>
+                            <span id="lpPartial2"
+                                style="font-size:0.75rem;font-weight:700;color:var(--orange);width:36px;text-align:right">0%</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span style="font-size:0.78rem;color:var(--text-muted);width:110px">❌ Not Listening</span>
+                            <div
+                                style="flex:1;height:10px;background:rgba(0,0,0,0.06);border-radius:5px;overflow:hidden">
+                                <div id="lpBarN"
+                                    style="height:100%;width:0%;background:linear-gradient(90deg,#EF4444,#EC4899);border-radius:5px;transition:width 0.8s ease">
+                                </div>
+                            </div>
+                            <span id="lpNotList2"
+                                style="font-size:0.75rem;font-weight:700;color:var(--red);width:36px;text-align:right">0%</span>
+                        </div>
+                    </div>
+                    <!-- Body Analysis indicator -->
+                    <div
+                        style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(91,80,240,0.05);border:1px solid rgba(91,80,240,0.12);border-radius:10px;margin-top:4px">
+                        <span style="font-size:1.1rem">🧍</span>
+                        <div style="flex:1">
+                            <div style="font-size:0.78rem;font-weight:700;color:var(--text-primary)">Body & Posture
+                                Analysis</div>
+                            <div style="font-size:0.72rem;color:var(--text-muted)" id="bodyAnalysisStatus">Monitoring
+                                head orientation, gaze direction & engagement posture</div>
+                        </div>
+                        <div id="bodyAnalysisBadge"
+                            style="font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(91,80,240,0.1);color:var(--purple)">
+                            Active</div>
+                    </div>
+                </div>
+
+                <!-- Live Analysis Log -->
+                <div class="analysis-log">
+                    <div class="analysis-log-header">
+                        <div class="chart-title">📝 Live Analysis Log — Percentages Saved to Database</div>
+                        <button class="btn btn-ghost" style="font-size:0.78rem;padding:4px 10px"
+                            onclick="clearLog()">Clear</button>
+                    </div>
+                    <div class="analysis-log-body" id="analysisLog">
+                        <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:0.85rem">
+                            📊 Start a session and enable the camera — recorded percentages will appear here
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seat Heatmap -->
+                <div class="chart-card heatmap-section" style="margin-top:20px">
+                    <div class="heatmap-header">
+                        <span class="chart-title">Classroom Seating Heatmap</span>
+                        <div class="heatmap-legend">
+                            <span>Low</span>
+                            <div class="legend-gradient"></div>
+                            <span>High</span>
+                        </div>
+                    </div>
+                    <div class="heatmap-grid" id="heatmapGrid"></div>
+                </div>
+            </div>
+
+            <!-- ── HEATMAP VIEW ── -->
+            <div id="view-heatmap" style="display:none">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div>
+                            <div class="chart-title">Detailed Engagement Heatmap</div>
+                            <div class="chart-subtitle">Click a face to view details</div>
+                        </div>
+                        <select class="form-control" id="heatmapMetric" onchange="renderHeatmap()"
+                            style="width:auto;font-size:0.85rem">
+                            <option value="engagement">Engagement</option>
+                            <option value="attention">Attention</option>
+                            <option value="participation">Participation</option>
+                        </select>
+                    </div>
+                    <div class="heatmap-grid" id="heatmapGrid2" style="grid-template-columns:repeat(8,1fr);gap:12px">
+                    </div>
+                </div>
+                <div id="selectedStudentDetail" style="display:none;margin-top:18px"></div>
+            </div>
+
+            <!-- ── STUDENTS VIEW ── -->
+            <div id="view-students" style="display:none">
+                <div class="b-controls" style="margin-bottom:20px">
+                    <div class="b-controls-left">
+                        <input type="text" class="form-control" placeholder="🔍 Search detected faces..."
+                            style="width:260px" id="studentTableSearch" oninput="filterStudentTable(this.value)" />
+                        <select class="form-control" id="sortStudents" onchange="sortStudentTable(this.value)"
+                            style="width:auto;font-size:0.88rem">
+                            <option value="engagement">Sort by Engagement</option>
+                            <option value="attention">Sort by Attention</option>
+                            <option value="name">Sort by Name</option>
+                            <option value="risk">Sort by Risk</option>
+                        </select>
+                    </div>
+                    <div class="b-controls-right">
+                        <button class="btn btn-primary" onclick="exportStudentCSV()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            Export CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-card" style="padding:0;overflow:hidden">
+                    <table style="width:100%;border-collapse:collapse" id="studentsTable">
+                        <thead>
+                            <tr style="border-bottom:1px solid var(--border-subtle);background:rgba(255,255,255,0.02)">
+                                <th
+                                    style="padding:14px 20px;text-align:left;font-size:0.78rem;font-weight:700;color:var(--text-muted);letter-spacing:0.06em">
+                                    FACE / STUDENT</th>
+                                <th
+                                    style="padding:14px 20px;text-align:center;font-size:0.78rem;font-weight:700;color:var(--text-muted);letter-spacing:0.06em">
+                                    ENGAGEMENT %</th>
+                                <th
+                                    style="padding:14px 20px;text-align:center;font-size:0.78rem;font-weight:700;color:var(--text-muted);letter-spacing:0.06em">
+                                    ATTENTION %</th>
+                                <th
+                                    style="padding:14px 20px;text-align:center;font-size:0.78rem;font-weight:700;color:var(--text-muted);letter-spacing:0.06em">
+                                    PARTICIPATION %</th>
+                                <th
+                                    style="padding:14px 20px;text-align:center;font-size:0.78rem;font-weight:700;color:var(--text-muted);letter-spacing:0.06em">
+                                    EMOTION</th>
+                                <th
+                                    style="padding:14px 20px;text-align:center;font-size:0.78rem;font-weight:700;color:var(--text-muted);letter-spacing:0.06em">
+                                    STATUS</th>
+                                <th
+                                    style="padding:14px 20px;text-align:center;font-size:0.78rem;font-weight:700;color:var(--text-muted);letter-spacing:0.06em">
+                                    ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ── REPORTS VIEW ── -->
+            <div id="view-reports" style="display:none">
+                <div style="margin-bottom:24px">
+                    <h2 style="font-size:1.2rem;font-weight:800;color:var(--text-primary);margin-bottom:8px">Session
+                        Reports</h2>
+                    <p style="font-size:0.9rem;color:var(--text-muted)">Completed sessions with saved engagement,
+                        attention &amp; participation percentages from SQLite</p>
+                </div>
+                <div class="report-cards" id="reportCardsContainer">
+                    <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">
+                        <div style="font-size:3rem;margin-bottom:12px">📋</div>
+                        <div style="font-size:1rem;font-weight:700;margin-bottom:8px">Loading reports…</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── SETTINGS VIEW ── -->
+            <div id="view-settings" style="display:none">
+                <div style="margin-bottom:24px">
+                    <h2 style="font-size:1.2rem;font-weight:800;color:var(--text-primary);margin-bottom:8px">Behaviour
+                        Analysis Settings</h2>
+                </div>
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <h3>Class Configuration</h3>
+                        <div class="form-group">
+                            <label class="form-label">Class Name</label>
+                            <input type="text" class="form-control" value="My Class" id="className" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Teacher Name</label>
+                            <input type="text" class="form-control" value="Teacher" id="teacherName" />
+                        </div>
+                        <button class="btn btn-primary" style="width:100%;justify-content:center"
+                            onclick="saveSettings()">💾 Save Settings</button>
+                    </div>
+                    <div class="settings-card">
+                        <h3>Detection Settings</h3>
+                        <div class="toggle-row">
+                            <div class="toggle-info">
+                                <div class="toggle-label">Body Posture Tracking</div>
+                                <div class="toggle-desc">Detect engagement based on physical posture and head direction
+                                    via camera (No facial recognition)</div>
+                            </div>
+                            <div class="toggle on"></div>
+                        </div>
+                        <div class="toggle-row">
+                            <div class="toggle-info">
+                                <div class="toggle-label">Auto-save Percentages</div>
+                                <div class="toggle-desc">Save engagement/attention/participation to SQLite</div>
+                            </div>
+                            <div class="toggle on"></div>
+                        </div>
+                        <div class="toggle-row">
+                            <div class="toggle-info">
+                                <div class="toggle-label">At-Risk Alerts</div>
+                                <div class="toggle-desc">Alert when engagement drops below 50%</div>
+                            </div>
+                            <div class="toggle on"></div>
+                        </div>
+                    </div>
+                    <div class="settings-card">
+                        <h3>Data &amp; Privacy</h3>
+                        <div class="toggle-row">
+                            <div class="toggle-info">
+                                <div class="toggle-label">Local Processing Only</div>
+                                <div class="toggle-desc">All AI runs on your laptop — no cloud uploads</div>
+                            </div>
+                            <div class="toggle on"></div>
+                        </div>
+                        <div class="toggle-row">
+                            <div class="toggle-info">
+                                <div class="toggle-label">Store Session History</div>
+                                <div class="toggle-desc">Keep all percentage records in SQLite database</div>
+                            </div>
+                            <div class="toggle on"></div>
+                        </div>
+                        <button class="btn btn-danger" style="margin-top:16px;width:100%;justify-content:center"
+                            onclick="clearAllData()">🗑️ Clear All Session Data</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Name and Subject Manager -->
+            <div class="settings-card" style="border:2px solid rgba(91,80,240,0.12);margin-top:16px">
+                <h3 style="margin-bottom:8px;color:#5B50F0">&#127891; Student Name &amp; Subject Manager</h3>
+                <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px">Add student names with
+                    subjects. The same student can be in multiple subjects separately.</p>
+                <div
+                    style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:16px;align-items:end">
+                    <div>
+                        <label class="form-label">Student Name</label>
+                        <input type="text" class="form-control" id="newStudentName" placeholder="e.g. Arjun Sharma" />
+                    </div>
+                    <div>
+                        <label class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="newSubjectName" placeholder="e.g. Mathematics" />
+                    </div>
+                    <button class="btn btn-primary" onclick="addStudentEntry()" style="height:40px;white-space:nowrap">
+                        + Add Student
+                    </button>
+                </div>
+                <div id="studentRosterContainer"
+                    style="max-height:260px;overflow-y:auto;border:1px solid var(--border-subtle);border-radius:10px;background:rgba(91,80,240,0.02)">
+                    <div id="studentRosterEmpty"
+                        style="padding:28px;text-align:center;color:var(--text-muted);font-size:0.88rem">
+                        No students added yet. Use the form above to build your class roster.
+                    </div>
+                    <div id="studentRosterList" style="display:none;padding:8px"></div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+                    <button class="btn btn-ghost" style="font-size:0.8rem" onclick="exportStudentRoster()">Export Roster
+                        CSV</button>
+                    <button class="btn btn-ghost" style="font-size:0.8rem;color:var(--red)"
+                        onclick="clearStudentRoster()">Clear All</button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ── FLOATING CAMERA PANEL ── -->
+    <div class="cam-float" id="camFloat">
+        <div class="cam-float-header" onclick="toggleCamCollapse()">
+            <div class="cam-float-title">
+                <div class="camera-dot" id="camDot"
+                    style="width:8px;height:8px;border-radius:50%;background:var(--text-muted)"></div>
+                📷 Live Camera
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+                <button onclick="event.stopPropagation();toggleCamFullscreen()" title="Fullscreen" style="font-size:0.72rem;padding:4px 8px;border-radius:20px;
+                           background:rgba(91,80,240,0.1);border:1px solid rgba(91,80,240,0.25);
+                           color:var(--purple);cursor:pointer;white-space:nowrap" id="camFsBtn">⛶</button>
+                <button class="btn-camera" id="camBtn" onclick="event.stopPropagation();toggleCamera()" style="font-size:0.72rem;padding:4px 10px;border-radius:20px;
+                           background:rgba(91,80,240,0.1);border:1px solid rgba(91,80,240,0.25);
+                           color:var(--purple);cursor:pointer;white-space:nowrap">
+                    Enable
+                </button>
+                <span id="camCollapseIcon" style="color:var(--text-muted);font-size:0.75rem">▼</span>
+            </div>
+        </div>
+        <div class="cam-float-body" id="camFloatBody">
+            <div class="cam-float-placeholder" id="cameraPlaceholder">
+                <div style="font-size:2rem">📷</div>
+                <div>Enable camera to start<br>real-time analysis</div>
+            </div>
+            <video id="cameraVideo" autoplay muted playsinline
+                style="width:100%;border-radius:8px;display:none;transform:scaleX(-1)"></video>
+            <canvas id="cameraCanvas"
+                style="position:absolute;top:12px;left:12px;width:calc(100% - 24px);height:auto;border-radius:8px;display:none;transform:scaleX(-1);pointer-events:none"></canvas>
+            <!-- Metrics -->
+            <div class="cam-float-metrics" id="camMetrics" style="display:none">
+                <div class="cam-float-metric">
+                    <div class="cfv" id="camEngagement">—</div>
+                    <div class="cfl">Engage</div>
+                </div>
+                <div class="cam-float-metric">
+                    <div class="cfv" id="camAttention">—</div>
+                    <div class="cfl">Attend</div>
+                </div>
+                <div class="cam-float-metric">
+                    <div class="cfv" id="camFaces">0</div>
+                    <div class="cfl">Faces</div>
+                </div>
+            </div>
+
+            <!-- Posture Analysis Strip -->
+            <div id="postureStrip"
+                style="display:none;padding:8px 10px 4px;border-top:1px solid var(--border-subtle);background:linear-gradient(135deg,rgba(91,80,240,0.04),rgba(0,200,138,0.04))">
+                <div
+                    style="font-size:0.65rem;font-weight:700;color:var(--text-muted);letter-spacing:0.08em;margin-bottom:5px">
+                    BODY POSTURE</div>
+                <div id="postureList" style="display:flex;flex-direction:column;gap:5px"></div>
+            </div>
+            <div style="margin-top:8px;font-size:0.7rem;color:var(--text-muted);text-align:center" id="camInfo"></div>
+        </div>
+    </div>
+
+    <!-- hidden compat elements -->
+    <div style="display:none">
+        <div id="camFacesLabel"></div>
+        <span id="sessionMeta2"></span>
+    </div>
+
+    <!-- ── ANALYSIS EXPORT MODAL ── -->
+    <div id="analysisExportModal"
+        style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.75);backdrop-filter:blur(10px);align-items:center;justify-content:center"
+        onclick="if(event.target===this)hideAnalysisExportModal()">
+        <div style="background:var(--bg-card);border:1px solid var(--border-glass);border-radius:var(--radius-xl);
+                    padding:36px;max-width:480px;width:100%;margin:16px;position:relative;
+                    box-shadow:0 24px 80px rgba(0,0,0,0.6)">
+            <!-- Close btn -->
+            <button onclick="hideAnalysisExportModal()" style="position:absolute;top:16px;right:16px;
+                background:rgba(255,255,255,0.05);border:1px solid var(--border-subtle);border-radius:8px;
+                width:32px;height:32px;color:var(--text-muted);cursor:pointer;font-size:1.1rem">✕</button>
+            <!-- Header -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+                <div
+                    style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,rgba(108,99,255,0.2),rgba(0,212,255,0.1));
+                            border:1px solid rgba(108,99,255,0.3);display:flex;align-items:center;justify-content:center;font-size:1.3rem">
+                    📊</div>
+                <div>
+                    <div style="font-size:1.05rem;font-weight:800;color:var(--text-primary)">Export Analysis Report
+                    </div>
+                    <div style="font-size:0.82rem;color:var(--text-muted)">Student behaviour data &amp; insights</div>
+                </div>
+            </div>
+            <div style="border-top:1px solid var(--border-subtle);margin:16px 0"></div>
+            <!-- Export options grid -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+                <button class="analysis-export-btn" onclick="exportAnalysisPDF();hideAnalysisExportModal()">
+                    <span style="font-size:1.5rem">📄</span>
+                    <div>
+                        <div style="font-weight:700;font-size:0.88rem">PDF Report</div>
+                        <div style="font-size:0.72rem;color:var(--text-muted)">Full analysis + charts</div>
+                    </div>
+                </button>
+                <button class="analysis-export-btn" onclick="exportStudentCSV();hideAnalysisExportModal()">
+                    <span style="font-size:1.5rem">📊</span>
+                    <div>
+                        <div style="font-weight:700;font-size:0.88rem">CSV Spreadsheet</div>
+                        <div style="font-size:0.72rem;color:var(--text-muted)">All student data rows</div>
+                    </div>
+                </button>
+                <button class="analysis-export-btn" onclick="exportStudentJSON();hideAnalysisExportModal()">
+                    <span style="font-size:1.5rem">🗂️</span>
+                    <div>
+                        <div style="font-weight:700;font-size:0.88rem">JSON Data</div>
+                        <div style="font-size:0.72rem;color:var(--text-muted)">Raw structured data</div>
+                    </div>
+                </button>
+                <button class="analysis-export-btn" onclick="exportExcelCSV();hideAnalysisExportModal()">
+                    <span style="font-size:1.5rem">📋</span>
+                    <div>
+                        <div style="font-weight:700;font-size:0.88rem">Excel Format</div>
+                        <div style="font-size:0.72rem;color:var(--text-muted)">Open in Excel/Sheets</div>
+                    </div>
+                </button>
+            </div>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center"
+                onclick="hideAnalysisExportModal()">Cancel</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/behaviour.js"></script>
+    <script>
+        // ── Custom Fullscreen Camera Overlay ──────────────────────────────────
+        let fsLoop = null;
+        function toggleCamFullscreen() {
+            const overlay = document.getElementById('camFullscreenOverlay');
+            const mainVideo = document.getElementById('cameraVideo');
+            const mainCanvas = document.getElementById('cameraCanvas');
+            const fsCanvas = document.getElementById('fsCanvas');
+            const ph = document.getElementById('fsPlaceholder');
+            if (!overlay) return;
+
+            if (overlay.style.display === 'none' || !overlay.style.display) {
+                // Show overlay
+                overlay.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+
+                // Check if camera is actually running
+                const camRunning = window.CAMERA && CAMERA.isRunning() && mainVideo && mainVideo.srcObject;
+
+                if (camRunning && fsCanvas) {
+                    fsCanvas.style.display = 'block';
+                    if (ph) ph.style.display = 'none';
+
+                    // Start loop to draw VIDEO + CANVAS overlay into fsCanvas
+                    const ctx = fsCanvas.getContext('2d');
+                    function sync() {
+                        if (overlay.style.display === 'none') return;
+                        const vw = mainVideo.videoWidth || 640;
+                        const vh = mainVideo.videoHeight || 480;
+                        if (fsCanvas.width !== vw) fsCanvas.width = vw;
+                        if (fsCanvas.height !== vh) fsCanvas.height = vh;
+
+                        ctx.clearRect(0, 0, vw, vh);
+
+                        // 1) Draw the video feed (mirrored)
+                        ctx.save();
+                        ctx.scale(-1, 1);
+                        ctx.drawImage(mainVideo, -vw, 0, vw, vh);
+                        ctx.restore();
+
+                        // 2) Draw the face-api annotation canvas on top (also mirrored)
+                        if (mainCanvas && mainCanvas.width > 0) {
+                            ctx.save();
+                            ctx.scale(-1, 1);
+                            ctx.drawImage(mainCanvas, -vw, 0, vw, vh);
+                            ctx.restore();
+                        }
+
+                        fsLoop = requestAnimationFrame(sync);
+                    }
+                    sync();
+                } else if (ph) {
+                    ph.style.display = 'flex';
+                    if (fsCanvas) fsCanvas.style.display = 'none';
+                }
+                const btn = document.getElementById('camFsBtn');
+                if (btn) btn.textContent = '✕';
+            } else {
+                closeCamFullscreen();
+            }
+        }
+        function closeCamFullscreen() {
+            const overlay = document.getElementById('camFullscreenOverlay');
+            if (overlay) overlay.style.display = 'none';
+            document.body.style.overflow = '';
+            if (fsLoop) { cancelAnimationFrame(fsLoop); fsLoop = null; }
+            const btn = document.getElementById('camFsBtn');
+            if (btn) btn.textContent = '⛶';
+        }
+        // ESC key closes
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCamFullscreen(); });
+
+        // ── Posture Panel Update ──────────────────────────────────────────
+        window.onPostureData = function (postureArray) {
+            const strip = document.getElementById('postureStrip');
+            const list = document.getElementById('postureList');
+            if (!strip || !list) return;
+            if (!postureArray || !postureArray.length) { strip.style.display = 'none'; return; }
+            strip.style.display = 'block';
+            list.innerHTML = postureArray.map((p, i) => {
+                if (!p) return '';
+                const color = p.postureScore >= 75 ? '#00C88A' : p.postureScore >= 55 ? '#F59E0B' : '#EF4444';
+                const barW = p.postureScore;
+                const listenBadge = p.isListening
+                    ? '<span style="color:#00C88A;font-weight:700;font-size:0.65rem"> | Listening</span>'
+                    : '<span style="color:#EF4444;font-weight:700;font-size:0.65rem"> | Not Listening</span>';
+                return `<div style="font-size:0.72rem">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+                        <span style="font-weight:600">${p.postureIcon} Face ${i + 1}: ${p.postureLabel}${listenBadge}</span>
+                        <span style="color:${color};font-weight:700">${p.postureScore}%</span>
+                    </div>
+                    <div style="height:4px;background:#E5E7EB;border-radius:4px;overflow:hidden">
+                        <div style="height:100%;width:${barW}%;background:${color};border-radius:4px;transition:width 0.4s ease"></div>
+                    </div>
+                    <div style="color:var(--text-muted);font-size:0.65rem;margin-top:1px">
+                        Tilt:${p.tiltDeg}° · Turn:${p.yawDeg}° · Pitch:${p.pitchDeg}°${p.eyesClosed ? ' · 😴 Eyes Closed' : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        };
+
+        // ── Student Name & Subject Manager ───────────────────────────────
+        let studentRoster = JSON.parse(localStorage.getItem('sc_student_roster') || '[]');
+        renderStudentRoster();
+
+        function addStudentEntry() {
+            const nameEl = document.getElementById('newStudentName');
+            const subjectEl = document.getElementById('newSubjectName');
+            const name = (nameEl.value || '').trim();
+            const subject = (subjectEl.value || '').trim();
+            if (!name) { showNotification('Please enter a student name', 'error'); return; }
+            if (!subject) { showNotification('Please enter a subject name', 'error'); return; }
+            studentRoster.push({ name, subject, id: Date.now() });
+            localStorage.setItem('sc_student_roster', JSON.stringify(studentRoster));
+            nameEl.value = ''; subjectEl.value = '';
+            renderStudentRoster();
+            showNotification(`✅ ${name} added to ${subject}`, 'success');
+        }
+
+        function removeStudentEntry(id) {
+            studentRoster = studentRoster.filter(s => s.id !== id);
+            localStorage.setItem('sc_student_roster', JSON.stringify(studentRoster));
+            renderStudentRoster();
+        }
+
+        function renderStudentRoster() {
+            const emptyEl = document.getElementById('studentRosterEmpty');
+            const listEl = document.getElementById('studentRosterList');
+            if (!emptyEl || !listEl) return;
+            if (!studentRoster.length) {
+                emptyEl.style.display = 'block'; listEl.style.display = 'none'; return;
+            }
+            emptyEl.style.display = 'none'; listEl.style.display = 'block';
+            // Group by subject
+            const bySubject = {};
+            studentRoster.forEach(s => {
+                if (!bySubject[s.subject]) bySubject[s.subject] = [];
+                bySubject[s.subject].push(s);
+            });
+            const colors = ['#5B50F0', '#00AADF', '#00C88A', '#F59E0B', '#EF4444', '#EC4899'];
+            let html = '';
+            Object.entries(bySubject).forEach(([sub, students], si) => {
+                const c = colors[si % colors.length];
+                html += `<div style="margin-bottom:12px">
+                    <div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;color:${c};padding:4px 8px;background:${c}15;border-radius:6px;margin-bottom:6px;display:inline-block">${sub.toUpperCase()}</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px">
+                        ${students.map(s => `
+                        <div style="display:flex;align-items:center;gap:6px;background:white;border:1px solid #E5E7EB;border-radius:20px;padding:4px 10px;font-size:0.8rem">
+                            <span style="width:22px;height:22px;border-radius:50%;background:${c};display:flex;align-items:center;justify-content:center;color:white;font-size:0.65rem;font-weight:700;flex-shrink:0">${s.name.charAt(0).toUpperCase()}</span>
+                            <span style="font-weight:600">${s.name}</span>
+                            <button onclick="removeStudentEntry(${s.id})" style="background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:0.8rem;padding:0;line-height:1" title="Remove">✕</button>
+                        </div>`).join('')}
+                    </div>
+                </div>`;
+            });
+            listEl.innerHTML = html;
+        }
+
+        function exportStudentRoster() {
+            if (!studentRoster.length) { showNotification('No roster to export', 'error'); return; }
+            const BOM = '\uFEFF';
+            const rows = studentRoster.map(s => `"${s.name}","${s.subject}"`);
+            const csv = BOM + 'Student Name,Subject\n' + rows.join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'student_roster.csv';
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+            showNotification('📥 Roster exported!', 'success');
+        }
+
+        function clearStudentRoster() {
+            if (!confirm('Clear all students from the roster?')) return;
+            studentRoster = [];
+            localStorage.removeItem('sc_student_roster');
+            renderStudentRoster();
+            showNotification('Roster cleared', 'success');
+        }
+
+        // ── Camera panel toggle (show/hide) ───────────────────────
+        function toggleCamPanel() {
+            const panel = document.getElementById('camFloat');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+        let camCollapsed = false;
+        function toggleCamCollapse() {
+            const body = document.getElementById('camFloatBody');
+            const icon = document.getElementById('camCollapseIcon');
+            camCollapsed = !camCollapsed;
+            body.style.display = camCollapsed ? 'none' : 'block';
+            icon.textContent = camCollapsed ? '▲' : '▼';
+        }
+
+        // ── Export Dropdown Toggle ────────────────────────────────
+        function toggleExportDropdown() {
+            const dd = document.getElementById('exportDropdown');
+            dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+        }
+        // Close dropdown when clicking elsewhere
+        document.addEventListener('click', function (e) {
+            const dd = document.getElementById('exportDropdown');
+            if (dd && !dd.closest) return;
+            const wrapper = dd?.parentElement;
+            if (dd && wrapper && !wrapper.contains(e.target)) {
+                dd.style.display = 'none';
+            }
+        });
+
+        // ── Analysis Export Modal ─────────────────────────────────
+        function showAnalysisExportModal() {
+            const modal = document.getElementById('analysisExportModal');
+            modal.style.display = 'flex';
+        }
+        function hideAnalysisExportModal() {
+            const modal = document.getElementById('analysisExportModal');
+            modal.style.display = 'none';
+        }
+
+        // ── Export JSON ───────────────────────────────────────────
+        function exportStudentJSON() {
+            if (!window.allStudents || !allStudents.length) {
+                showNotification('No data to export. Start a session first.', 'error'); return;
+            }
+            const data = {
+                exportDate: new Date().toISOString(),
+                sessionId: window.activeSessionId || null,
+                listeningAnalysis: { ..._listenLog },
+                students: allStudents.map(s => ({
+                    id: s.student_id || s.id,
+                    name: s.name,
+                    engagement: Math.round(s.engagement || 0),
+                    attention: Math.round(s.attention || 0),
+                    participation: Math.round(s.participation || 0),
+                    emotion: s.emotion || '—',
+                    focusingStatus: ((s.engagement + s.attention) / 2) >= 65 ? '🎯 Focusing' :
+                        ((s.engagement + s.attention) / 2) >= 45 ? '⚡ Partial' : '❌ Not Focusing',
+                    status: (s.engagement < 55) ? 'At Risk' : 'Good'
+                }))
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `student_analysis_${Date.now()}.json`;
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+            showNotification('JSON exported to Downloads!', 'success');
+        }
+
+        // ── Export Excel-compatible CSV ───────────────────────────
+        function exportExcelCSV() {
+            if (!window.allStudents || !allStudents.length) {
+                showNotification('No data to export. Start a session first.', 'error'); return;
+            }
+            const BOM = '\uFEFF';
+            const header = 'Student Name,Seat,Engagement %,Attention %,Participation %,Emotion,Focusing Status,Risk Status';
+            const rows = allStudents.map(s => {
+                const score = (s.engagement + s.attention) / 2;
+                const ls = score >= 65 ? '🎯 Focusing' : score >= 45 ? '⚡ Partial' : '❌ Not Focusing';
+                return `"${s.name}","${(s.seat_row ?? 0) + 1}-${(s.seat_col ?? 0) + 1}",` +
+                    `${Math.round(s.engagement || 0)},${Math.round(s.attention || 0)},` +
+                    `${Math.round(s.participation || 0)},"${s.emotion || '—'}",` +
+                    `"${ls}","${s.engagement < 55 ? 'At Risk' : 'Good'}"`;
+            });
+            const blob = new Blob([BOM + [header, ...rows].join('\n')], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `student_analysis_${Date.now()}.csv`;
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+            showNotification('CSV saved to Downloads!', 'success');
+        }
+
+        // ── Analysis log helper (called from behaviour.js) ─────────
+        window.addAnalysisLog = function (engagement, attention, participation, faces, emotion) {
+            const log = document.getElementById('analysisLog');
+            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const score = (engagement + attention) / 2;
+            const focusStatus = score >= 65 ? '🎯 Focusing' : score >= 45 ? '⚡ Partially Focusing' : '❌ Not Focusing';
+            const focusColor = score >= 65 ? '#00C88A' : score >= 45 ? '#F59E0B' : '#EF4444';
+            const engColor = engagement >= 70 ? '#00FFB3' : engagement >= 50 ? '#FFB347' : '#FF6B6B';
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">${now}</span>
+                <span class="log-badge" style="background:rgba(108,99,255,0.15);color:var(--purple-light)">
+                    ${faces} face${faces !== 1 ? 's' : ''}
+                </span>
+                <span class="log-msg" style="color:${focusColor};font-weight:600">${focusStatus}</span>
+                <span class="log-pct" style="color:${engColor}">${Math.round(engagement)}%</span>
+            `;
+            // Remove placeholder
+            const ph = log.querySelector('[style*="padding:24px"]');
+            if (ph) ph.remove();
+            log.prepend(entry);
+            // Cap at 50 entries
+            while (log.children.length > 50) log.removeChild(log.lastChild);
+            // Sync fullscreen overlay stats if open
+            const fsEng = document.getElementById('fsEngagement');
+            const fsAtt = document.getElementById('fsAttention');
+            const fsFac = document.getElementById('fsFaces');
+            if (fsEng) fsEng.textContent = Math.round(engagement) + '%';
+            if (fsAtt) fsAtt.textContent = Math.round(attention) + '%';
+            if (fsFac) fsFac.textContent = faces;
+            // Update focus status card
+            const score2 = (engagement + attention) / 2;
+            const fsFocusLabel = document.getElementById('fsFocusLabel');
+            const fsFocusIcon = document.getElementById('fsFocusIcon');
+            const fsFocusCard = document.getElementById('fsFocusCard');
+            if (fsFocusLabel) {
+                if (score2 >= 65) {
+                    fsFocusLabel.textContent = 'Focusing';
+                    fsFocusLabel.style.color = '#00C88A';
+                    if (fsFocusIcon) fsFocusIcon.textContent = '🎯';
+                    if (fsFocusCard) fsFocusCard.style.background = 'linear-gradient(135deg,rgba(0,200,138,0.18),rgba(91,80,240,0.08))';
+                } else if (score2 >= 45) {
+                    fsFocusLabel.textContent = 'Partially Focusing';
+                    fsFocusLabel.style.color = '#F59E0B';
+                    if (fsFocusIcon) fsFocusIcon.textContent = '⚡';
+                    if (fsFocusCard) fsFocusCard.style.background = 'linear-gradient(135deg,rgba(245,158,11,0.18),rgba(91,80,240,0.05))';
+                } else {
+                    fsFocusLabel.textContent = 'Not Focusing';
+                    fsFocusLabel.style.color = '#EF4444';
+                    if (fsFocusIcon) fsFocusIcon.textContent = '❌';
+                    if (fsFocusCard) fsFocusCard.style.background = 'linear-gradient(135deg,rgba(239,68,68,0.18),rgba(91,80,240,0.05))';
+                }
+            }
+            // Mini log in fullscreen
+            const fsMiniLog = document.getElementById('fsMiniLog');
+            if (fsMiniLog) {
+                const now2 = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const fl = score2 >= 65 ? '🎯' : score2 >= 45 ? '⚡' : '❌';
+                const fc = score2 >= 65 ? '#00C88A' : score2 >= 45 ? '#F59E0B' : '#EF4444';
+                const fsMiniEntry = document.createElement('div');
+                fsMiniEntry.style.cssText = 'display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04)';
+                fsMiniEntry.innerHTML = '<span style="color:rgba(255,255,255,0.4)">' + now2 + '</span><span style="color:' + fc + '">' + fl + ' ' + Math.round(engagement) + '%</span>';
+                if (fsMiniLog.querySelector('span')) fsMiniLog.innerHTML = '';
+                fsMiniLog.prepend(fsMiniEntry);
+                while (fsMiniLog.children.length > 8) fsMiniLog.removeChild(fsMiniLog.lastChild);
+            }
+
+            // update listening panel
+            _updateListeningPanel(engagement, attention, faces);
+        };
+
+        window.clearLog = function () {
+            const log = document.getElementById('analysisLog');
+            log.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:0.85rem">📊 Log cleared — start a session to record</div>';
+        };
+
+        window.clearAllData = function () {
+            if (confirm('Clear all session data from the database? This cannot be undone.')) {
+                showNotification('Data cleared from SQLite database', 'success');
+            }
+        };
+
+        // ── Listening panel live update ──────────────────────────────────
+        let _listenLog = { listening: 0, partial: 0, notListening: 0, total: 0 };
+        function _updateListeningPanel(engagement, attention, faces) {
+            if (faces > _listenLog.total) _listenLog.total = faces;
+            const score = (engagement + attention) / 2;
+            if (score >= 65) _listenLog.listening++;
+            else if (score >= 45) _listenLog.partial++;
+            else _listenLog.notListening++;
+
+            const T = _listenLog.listening + _listenLog.partial + _listenLog.notListening || 1;
+            const lPct = Math.round(_listenLog.listening / T * 100);
+            const pPct = Math.round(_listenLog.partial / T * 100);
+            const nPct = Math.round(_listenLog.notListening / T * 100);
+
+            const el = document.getElementById('listeningPanel');
+            if (!el) return;
+            // Big card numbers
+            document.getElementById('lpListening').textContent = lPct + '%';
+            document.getElementById('lpPartial').textContent = pPct + '%';
+            document.getElementById('lpNotList').textContent = nPct + '%';
+            document.getElementById('lpFaces').textContent = faces;
+            // Bar labels
+            if (document.getElementById('lpListening2')) document.getElementById('lpListening2').textContent = lPct + '%';
+            if (document.getElementById('lpPartial2')) document.getElementById('lpPartial2').textContent = pPct + '%';
+            if (document.getElementById('lpNotList2')) document.getElementById('lpNotList2').textContent = nPct + '%';
+            // Bars
+            document.getElementById('lpBarL').style.width = lPct + '%';
+            document.getElementById('lpBarP').style.width = pPct + '%';
+            document.getElementById('lpBarN').style.width = nPct + '%';
+
+            // Fullscreen bars sync
+            const fsL = document.getElementById('fsBarFocusing');
+            const fsP = document.getElementById('fsBarPartial');
+            const fsN = document.getElementById('fsBarNotFocusing');
+            if (fsL) fsL.style.width = lPct + '%';
+            if (fsP) fsP.style.width = pPct + '%';
+            if (fsN) fsN.style.width = nPct + '%';
+
+            const fsPL = document.getElementById('fsPctFocusing');
+            const fsPP = document.getElementById('fsPctPartial');
+            const fsPN = document.getElementById('fsPctNotFocusing');
+            if (fsPL) fsPL.textContent = lPct + '%';
+            if (fsPP) fsPP.textContent = pPct + '%';
+            if (fsPN) fsPN.textContent = nPct + '%';
+            // Body analysis status
+            const bodyStatus = document.getElementById('bodyAnalysisStatus');
+            const bodyBadge = document.getElementById('bodyAnalysisBadge');
+            if (bodyStatus) {
+                const posture = score >= 65 ? 'Forward lean & eye contact detected' :
+                    score >= 45 ? 'Partial gaze — mild distraction noted' :
+                        'Head turned / low gaze — likely disengaged';
+                bodyStatus.textContent = posture;
+            }
+            if (bodyBadge) {
+                bodyBadge.textContent = faces > 0 ? `${faces} tracked` : 'Active';
+                bodyBadge.style.background = faces > 0 ? 'rgba(0,200,138,0.1)' : 'rgba(91,80,240,0.1)';
+                bodyBadge.style.color = faces > 0 ? 'var(--green)' : 'var(--purple)';
+            }
+            el.style.display = 'block';
+        }
+
+        // ── PDF Export for Analysis Report ───────────────────────────────
+        async function exportAnalysisPDF() {
+            if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+                showNotification('PDF library loading… try again.', 'error'); return;
+            }
+            showNotification('📄 Building Analysis Report PDF…', 'info', 2500);
+            try {
+                const { jsPDF } = window.jspdf || { jsPDF: window.jsPDF };
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const pageW = doc.internal.pageSize.getWidth();
+                const pageH = doc.internal.pageSize.getHeight();
+                const M = 18, CW = pageW - M * 2;
+                let y = M;
+
+                // Header
+                doc.setFillColor(108, 99, 255);
+                doc.rect(0, 0, pageW, 26, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+                doc.text('SmartClass AI', M, 16);
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+                doc.text('Student Behaviour Analysis Report', M, 22);
+                const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+                doc.text(dateStr, pageW - M, 16, { align: 'right' });
+                y = 38;
+
+                // Title
+                doc.setTextColor(20, 20, 40);
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+                doc.text('Classroom Behaviour Analysis Report', M, y); y += 12;
+
+                // Metrics from dashboard
+                const eng = document.getElementById('metricEngagement')?.textContent || '—';
+                const att = document.getElementById('metricAttention')?.textContent || '—';
+                const part = document.getElementById('metricParticipation')?.textContent || '—';
+                const risk = document.getElementById('metricAtRisk')?.textContent || '—';
+
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(60, 60, 100);
+                doc.text('Session Metrics', M, y); y += 6;
+
+                const boxes = [
+                    { label: 'Avg Engagement', val: eng, col: [108, 99, 255] },
+                    { label: 'Avg Attention', val: att, col: [0, 212, 255] },
+                    { label: 'Participation', val: part, col: [0, 255, 179] },
+                    { label: 'At-Risk', val: risk, col: [255, 107, 107] },
+                ];
+                boxes.forEach((b, i) => {
+                    const bx = M + i * (CW / 4);
+                    doc.setFillColor(...b.col.map(c => Math.floor(c * 0.15)));
+                    doc.roundedRect(bx, y, CW / 4 - 3, 22, 2, 2, 'F');
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+                    doc.setTextColor(...b.col);
+                    doc.text(b.val, bx + (CW / 4 - 3) / 2, y + 12, { align: 'center' });
+                    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+                    doc.setTextColor(100, 100, 130);
+                    doc.text(b.label.toUpperCase(), bx + (CW / 4 - 3) / 2, y + 19, { align: 'center' });
+                });
+                y += 30;
+
+                // Listening section
+                doc.setDrawColor(200, 200, 220); doc.setLineWidth(0.4);
+                doc.line(M, y, pageW - M, y); y += 6;
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(60, 50, 180);
+                doc.text('🎯 Focusing Status Analysis', M, y); y += 8;
+
+                const lPct = document.getElementById('lpListening')?.textContent || '0%';
+                const pPct = document.getElementById('lpPartial')?.textContent || '0%';
+                const nPct = document.getElementById('lpNotList')?.textContent || '0%';
+
+                const lRows = [
+                    { label: '🎯 Focusing', val: lPct, color: [0, 200, 138] },
+                    { label: '⚡ Partial', val: pPct, color: [245, 158, 11] },
+                    { label: '❌ Not Focusing', val: nPct, color: [239, 68, 68] },
+                ];
+                lRows.forEach(r => {
+                    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(40, 40, 60);
+                    doc.text(r.label, M + 2, y);
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+                    doc.setTextColor(...r.color);
+                    doc.text(r.val, pageW - M, y, { align: 'right' });
+                    // bar
+                    const barPct = parseFloat(r.val) / 100;
+                    doc.setFillColor(230, 230, 240);
+                    doc.roundedRect(M + 48, y - 4, CW - 58, 5, 1, 1, 'F');
+                    doc.setFillColor(...r.color);
+                    doc.roundedRect(M + 48, y - 4, (CW - 58) * barPct, 5, 1, 1, 'F');
+                    y += 9;
+                });
+                y += 4;
+
+                // Analysis Log
+                doc.setDrawColor(200, 200, 220); doc.line(M, y, pageW - M, y); y += 6;
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(60, 50, 180);
+                doc.text('📝 Live Analysis Log', M, y); y += 8;
+
+                const logEntries = document.querySelectorAll('#analysisLog .log-entry');
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(40, 40, 60);
+                let count = 0;
+                logEntries.forEach(entry => {
+                    if (count >= 20 || y > pageH - 30) return;
+                    const time = entry.querySelector('.log-time')?.textContent || '';
+                    const msg = entry.querySelector('.log-msg')?.textContent || '';
+                    const pct = entry.querySelector('.log-pct')?.textContent || '';
+                    doc.text(`${time}  ${msg}  ${pct}`, M + 2, y);
+                    y += 6; count++;
+                });
+
+                // Footer
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(160, 160, 180);
+                doc.text('SmartClass AI — Student Behaviour Analysis Report', pageW / 2, pageH - 8, { align: 'center' });
+
+                doc.save(`behaviour_analysis_report_${Date.now()}.pdf`);
+                showNotification('✅ Analysis Report PDF saved!', 'success');
+            } catch (err) {
+                console.error('PDF err:', err);
+                showNotification('PDF failed: ' + err.message, 'error');
+            }
+        }
+    </script>
+
+    <!-- ── FULLSCREEN CAMERA OVERLAY ── -->
+    <div id="camFullscreenOverlay" style="display:none;position:fixed;inset:0;z-index:9999;
+         background:linear-gradient(135deg,#08081a 0%,#0e0e28 50%,#08081a 100%);
+         flex-direction:row;overflow:hidden">
+
+        <!-- LEFT: Full camera view with canvas overlay on top -->
+        <div style="flex:1;position:relative;display:flex;align-items:center;justify-content:center;min-width:0">
+            <!-- Top bar inside camera area -->
+            <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;
+                 padding:14px 24px;background:linear-gradient(180deg,rgba(0,0,0,0.7),transparent);z-index:10">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <div style="width:9px;height:9px;border-radius:50%;background:#EF4444;
+                         box-shadow:0 0 10px #EF4444;animation:pulse 2s infinite"></div>
+                    <span style="color:#fff;font-weight:800;font-size:0.95rem">SmartClass AI — Live Full Analysis</span>
+                    <span
+                        style="font-size:0.7rem;padding:2px 10px;border-radius:20px;background:rgba(108,99,255,0.3);color:#c4bfff">RECORDING</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px">
+                    <span style="color:rgba(255,255,255,0.4);font-size:0.76rem">ESC to close</span>
+                    <button onclick="closeCamFullscreen()"
+                        style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);
+                         width:34px;height:34px;border-radius:8px;color:#fff;font-size:1rem;cursor:pointer">&#10005;</button>
+                </div>
+            </div>
+
+            <!-- Video element (hidden, used as source) -->
+            <video id="fsVideo" autoplay muted playsinline style="display:none"></video>
+
+            <!-- Canvas that mirrors main camera + analysis overlays -->
+            <canvas id="fsCanvas" style="max-width:100%;max-height:100vh;object-fit:contain"></canvas>
+
+            <!-- Placeholder when camera is off -->
+            <div id="fsPlaceholder"
+                style="display:none;flex-direction:column;align-items:center;gap:16px;color:rgba(255,255,255,0.45)">
+                <div style="font-size:5rem">&#128247;</div>
+                <div style="font-size:1.05rem;font-weight:600">Enable camera first to use fullscreen view</div>
+                <button
+                    onclick="closeCamFullscreen();setTimeout(function(){document.getElementById('camBtn').click()},400)"
+                    style="padding:10px 24px;border-radius:12px;background:linear-gradient(135deg,#5B50F0,#00AADF);
+                    border:none;color:#fff;font-weight:700;cursor:pointer;font-size:0.9rem">Enable Camera</button>
+            </div>
+        </div>
+
+        <!-- RIGHT: Live stats panel -->
+        <div
+            style="width:290px;flex-shrink:0;height:100%;display:flex;flex-direction:column;gap:12px;padding:16px 14px;
+             background:rgba(0,0,0,0.55);backdrop-filter:blur(20px);border-left:1px solid rgba(255,255,255,0.06);overflow-y:auto">
+
+            <!-- Focus Status card -->
+            <div id="fsFocusCard" style="border-radius:14px;padding:16px;text-align:center;
+                 background:linear-gradient(135deg,rgba(0,200,138,0.15),rgba(91,80,240,0.1));
+                 border:1px solid rgba(0,200,138,0.25)">
+                <div id="fsFocusIcon" style="font-size:2.2rem;margin-bottom:4px">&#127919;</div>
+                <div id="fsFocusLabel" style="font-size:1.05rem;font-weight:800;color:#00C88A">Focusing</div>
+                <div style="font-size:0.68rem;color:rgba(255,255,255,0.4);margin-top:3px;letter-spacing:0.06em">CLASS
+                    FOCUS STATUS</div>
+            </div>
+
+            <!-- 4-metric grid -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+                <div
+                    style="background:rgba(108,99,255,0.14);border:1px solid rgba(108,99,255,0.25);border-radius:10px;padding:11px;text-align:center">
+                    <div style="font-size:1.5rem;font-weight:800;color:#9B93FF" id="fsEngagement">—</div>
+                    <div style="font-size:0.62rem;color:rgba(255,255,255,0.4);letter-spacing:0.08em">ENGAGE</div>
+                </div>
+                <div
+                    style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.22);border-radius:10px;padding:11px;text-align:center">
+                    <div style="font-size:1.5rem;font-weight:800;color:#00D4FF" id="fsAttention">—</div>
+                    <div style="font-size:0.62rem;color:rgba(255,255,255,0.4);letter-spacing:0.08em">ATTN</div>
+                </div>
+                <div
+                    style="background:rgba(0,255,179,0.08);border:1px solid rgba(0,255,179,0.15);border-radius:10px;padding:11px;text-align:center">
+                    <div style="font-size:1.5rem;font-weight:800;color:#00FFB3" id="fsFaces">0</div>
+                    <div style="font-size:0.62rem;color:rgba(255,255,255,0.4);letter-spacing:0.08em">FACES</div>
+                </div>
+                <div
+                    style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:11px;text-align:center">
+                    <div style="font-size:1.5rem;font-weight:800;color:#F59E0B" id="fsPosture">—</div>
+                    <div style="font-size:0.62rem;color:rgba(255,255,255,0.4);letter-spacing:0.08em">POSTURE</div>
+                </div>
+            </div>
+
+            <!-- Focus breakdown bars -->
+            <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:13px">
+                <div
+                    style="font-size:0.65rem;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:0.08em;margin-bottom:9px">
+                    FOCUS BREAKDOWN</div>
+                <div style="margin-bottom:7px">
+                    <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:3px">
+                        <span style="color:#00C88A;font-weight:700">&#127919; Focusing</span>
+                        <span style="color:#00C88A" id="fsPctFocusing">—</span>
+                    </div>
+                    <div style="height:5px;background:rgba(255,255,255,0.07);border-radius:4px">
+                        <div id="fsBarFocusing"
+                            style="height:100%;width:0%;background:linear-gradient(90deg,#00C88A,#00FFB3);border-radius:4px;transition:width 0.5s ease">
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-bottom:7px">
+                    <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:3px">
+                        <span style="color:#F59E0B;font-weight:700">&#9889; Partial</span>
+                        <span style="color:#F59E0B" id="fsPctPartial">—</span>
+                    </div>
+                    <div style="height:5px;background:rgba(255,255,255,0.07);border-radius:4px">
+                        <div id="fsBarPartial"
+                            style="height:100%;width:0%;background:linear-gradient(90deg,#F59E0B,#FBBF24);border-radius:4px;transition:width 0.5s ease">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-bottom:3px">
+                        <span style="color:#EF4444;font-weight:700">&#10060; Not Focusing</span>
+                        <span style="color:#EF4444" id="fsPctNotFocusing">—</span>
+                    </div>
+                    <div style="height:5px;background:rgba(255,255,255,0.07);border-radius:4px">
+                        <div id="fsBarNotFocusing"
+                            style="height:100%;width:0%;background:linear-gradient(90deg,#EF4444,#F87171);border-radius:4px;transition:width 0.5s ease">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Posture list -->
+            <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:13px">
+                <div
+                    style="font-size:0.65rem;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:0.08em;margin-bottom:8px">
+                    BODY POSTURE</div>
+                <div id="fsPostureList" style="font-size:0.78rem;color:rgba(255,255,255,0.6)">
+                    <span style="color:rgba(255,255,255,0.3)">Waiting for camera…</span>
+                </div>
+            </div>
+
+            <!-- Mini log -->
+            <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:13px;flex:1">
+                <div
+                    style="font-size:0.65rem;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:0.08em;margin-bottom:8px">
+                    LIVE LOG</div>
+                <div id="fsMiniLog"
+                    style="display:flex;flex-direction:column;gap:4px;font-size:0.74rem;color:rgba(255,255,255,0.55);max-height:120px;overflow-y:auto">
+                    <span style="color:rgba(255,255,255,0.3)">No data yet…</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

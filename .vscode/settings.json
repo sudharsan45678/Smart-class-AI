@@ -1,0 +1,31 @@
+{
+    "python.defaultInterpreterPath": "C:/Users/sudharsan/AppData/Local/Programs/Python/Python312/python.exe",
+    "python.analysis.extraPaths": [
+        "C:/Users/sudharsan/AppData/Local/Programs/Python/Python312/Lib/site-packages",
+        "C:/Users/sudharsan/AppData/Local/Programs/Python/Python312/Lib",
+        "${workspaceFolder}/backend"
+    ],
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.useLibraryCodeForTypes": true,
+    "python.analysis.diagnosticMode": "off",
+    "python.analysis.reportMissingImports": "none",
+    "python.analysis.reportMissingModuleSource": "none",
+    "python.analysis.reportMissingTypeStubs": "none",
+    "python.analysis.reportGeneralTypeIssues": "none",
+    "python.analysis.reportReturnType": "none",
+    "python.analysis.reportArgumentType": "none",
+    "python.analysis.reportOperatorIssue": "none",
+    "python.analysis.reportCallIssue": "none",
+    "python.analysis.reportIndexIssue": "none",
+    "python.analysis.reportAttributeAccessIssue": "none",
+    "python.analysis.reportUnknownMemberType": "none",
+    "pyre2.enabled": false,
+    "pylint.enabled": false,
+    "python.linting.enabled": false,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": false,
+    "[python]": {
+        "editor.defaultFormatter": null
+    }
+}

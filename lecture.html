@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lecture Note Engine | SmartClass AI</title>
+    <meta name="description"
+        content="AI-powered lecture transcription and smart note generation. Convert speech to structured notes instantly." />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/lecture.css" />
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+
+<body class="lecture-page">
+
+    <!-- ── NAVBAR ── -->
+    <nav class="navbar scrolled" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 36 36" fill="none">
+                        <rect width="36" height="36" rx="10" fill="url(#lGrad)" />
+                        <path d="M10 18 Q18 8 26 18 Q18 28 10 18Z" fill="white" opacity="0.9" />
+                        <circle cx="18" cy="18" r="4" fill="white" />
+                        <defs>
+                            <linearGradient id="lGrad" x1="0" y1="0" x2="36" y2="36">
+                                <stop offset="0%" stop-color="#6C63FF" />
+                                <stop offset="100%" stop-color="#00D4FF" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span class="brand-name">SmartClass<em>AI</em></span>
+            </a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="behaviour.html">Behaviour</a></li>
+                <li><a href="parent.html">Parent</a></li>
+            </ul>
+            <div class="nav-actions">
+                <a href="index.html" class="btn btn-ghost">Home</a>
+                <a href="behaviour.html" class="btn btn-ghost">Behaviour</a>
+                <a href="parent.html" class="btn btn-primary">Parent</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── MAIN LAYOUT ── -->
+    <div class="lecture-layout">
+
+        <!-- ═══════════════════════ LEFT COLUMN ═══════════════════════ -->
+        <main class="lecture-main">
+
+            <!-- ── Page Header ── -->
+            <div class="lecture-page-header">
+                <h1 class="lecture-page-title">📝 Lecture Note Engine</h1>
+                <p class="lecture-page-sub">Paste text, record speech, or upload a file — Python AI generates
+                    structured notes, key concepts, and Q&A banks instantly.</p>
+            </div>
+
+            <!-- ── Input Mode Tabs ── -->
+            <div class="mode-tabs" id="inputModeTabs">
+                <button class="tab-btn active" id="tabText" onclick="switchInputMode('text', this)">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="14" height="14" rx="2" />
+                        <path d="M7 7h6M7 10h6M7 13h4" />
+                    </svg>
+                    Text
+                </button>
+                <button class="tab-btn" id="tabRecord" onclick="switchInputMode('record', this)">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="7" y="2" width="6" height="10" rx="3" />
+                        <path d="M5 10a5 5 0 0 0 10 0M10 15v3M7 18h6" />
+                    </svg>
+                    Record
+                </button>
+                <button class="tab-btn" id="tabUpload" onclick="switchInputMode('upload', this)">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M4 4v12a2 2 0 002 2h8a2 2 0 002-2V8l-4-4H6a2 2 0 00-2 2z" />
+                        <polyline points="12 4 12 8 16 8" />
+                    </svg>
+                    Upload
+                </button>
+            </div>
+            <div class="mode-label" id="modeLabel">Type or paste lecture content below</div>
+
+            <!-- ── TEXT INPUT ── -->
+            <div class="input-mode" id="inputModeText" style="display:block">
+                <div class="topic-row">
+                    <input type="text" id="topicInput" placeholder="Topic / Title (e.g. Neural Networks — Week 5)"
+                        class="topic-input" />
+                </div>
+                <div class="text-input-card">
+                    <div class="text-input-header">
+                        <span class="text-input-title">Lecture Content</span>
+                        <span class="text-word-count" id="wordCount">0 words</span>
+                    </div>
+                    <textarea id="lectureText" rows="14"
+                        placeholder="Paste or type your lecture content here...&#10;&#10;The Python NLP engine will:&#10;• Extract keywords using TF-IDF&#10;• Generate a structured summary&#10;• Create Q&A pairs&#10;• Build a mind map"
+                        oninput="updateWordCount(this)"></textarea>
+                </div>
+                <div class="text-actions">
+                    <button class="btn btn-ghost" onclick="loadSampleText()">📋 Load Sample</button>
+                    <div class="input-options">
+                        <select id="noteStyle" class="select-sm">
+                            <option value="detailed">📖 Detailed</option>
+                            <option value="concise">📝 Concise</option>
+                            <option value="bullet">🔹 Bullet Points</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── RECORD INPUT ── -->
+            <div class="input-mode" id="inputModeRecord" style="display:none">
+                <div class="record-panel">
+                    <div class="record-header">
+                        <span class="speech-status" id="speechStatus">🔴 Not listening</span>
+                        <span class="record-timer" id="recordTimer">00:00</span>
+                    </div>
+                    <div class="record-visual">
+                        <button class="record-btn" id="recordBtn" onclick="toggleRecording()">🎙</button>
+                        <div class="speaking-wave" id="speakingWave">
+                            <div class="waveform-display" id="waveformDisplay"></div>
+                        </div>
+                    </div>
+                    <div class="record-controls">
+                        <button class="btn btn-ghost btn-sm" onclick="pauseRecording()">⏸ Pause</button>
+                        <button class="btn btn-ghost btn-sm" onclick="useTranscriptForNotes()">📝 Use as Notes</button>
+                        <button class="btn btn-ghost btn-sm" onclick="clearLiveTranscript()">🗑 Clear</button>
+                    </div>
+                    <div class="record-lang">
+                        <label>Language:</label>
+                        <select id="speechLang" class="select-sm">
+                            <option value="en-IN">English (India)</option>
+                            <option value="en-US">English (US)</option>
+                            <option value="hi-IN">Hindi</option>
+                            <option value="ta-IN">Tamil</option>
+                            <option value="te-IN">Telugu</option>
+                        </select>
+                    </div>
+                    <div class="live-transcript-box">
+                        <div class="transcript-header">
+                            <span>Live Transcript</span>
+                            <span id="liveWordCount">0 words</span>
+                            <span id="liveRecordTime"></span>
+                        </div>
+                        <div class="transcript-body" id="liveTranscriptBody">
+                            <span style="color:var(--text-muted);font-style:italic">Start speaking — your words will
+                                appear here in real-time...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── UPLOAD INPUT ── -->
+            <div class="input-mode" id="inputModeUpload" style="display:none">
+                <div class="upload-zone" id="uploadZone" ondragover="handleDragOver(event)"
+                    ondragleave="handleDragLeave()" ondrop="handleDrop(event)">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-title">Drag & drop a lecture file here</div>
+                    <div class="upload-sub">Supports: .txt, .md, .doc</div>
+                    <label class="btn btn-ghost">
+                        Browse Files
+                        <input type="file" accept=".txt,.md,.text,.doc,.docx" onchange="handleFileUpload(this)"
+                            hidden />
+                    </label>
+                </div>
+                <div id="uploadedFileInfo" style="display:none"></div>
+            </div>
+
+            <!-- ── Process Button ── -->
+            <button class="process-btn" id="processBtn" onclick="processLecture()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5" />
+                    <path d="M2 12l10 5 10-5" />
+                </svg>
+                Generate AI Notes
+            </button>
+
+            <!-- ── Processing Card ── -->
+            <div class="processing-card" id="processingCard">
+                <div class="processing-step step-pending" id="pStep1">
+                    <span class="step-icon-sm">📖</span>
+                    <span>Reading content…</span>
+                    <span class="step-progress" id="pProg1">0%</span>
+                </div>
+                <div class="processing-step step-pending" id="pStep2">
+                    <span class="step-icon-sm">🔍</span>
+                    <span>Extracting keywords…</span>
+                    <span class="step-progress" id="pProg2">0%</span>
+                </div>
+                <div class="processing-step step-pending" id="pStep3">
+                    <span class="step-icon-sm">✍️</span>
+                    <span>Generating summary…</span>
+                    <span class="step-progress" id="pProg3">0%</span>
+                </div>
+                <div class="processing-step step-pending" id="pStep4">
+                    <span class="step-icon-sm">💾</span>
+                    <span>Saving to database…</span>
+                    <span class="step-progress" id="pProg4">0%</span>
+                </div>
+            </div>
+
+            <!-- ── Results Section ── -->
+            <div class="results-section" id="resultsSection" style="display:none">
+                <!-- Stats Row -->
+                <div class="stats-row">
+                    <div class="stat-chip">
+                        <span class="stat-chip-icon">📝</span>
+                        <span class="stat-chip-value" id="statsWords">0</span>
+                        <span class="stat-chip-label">Words</span>
+                    </div>
+                    <div class="stat-chip">
+                        <span class="stat-chip-icon">🧠</span>
+                        <span class="stat-chip-value" id="statsConcepts">0</span>
+                        <span class="stat-chip-label">Concepts</span>
+                    </div>
+                    <div class="stat-chip">
+                        <span class="stat-chip-icon">❓</span>
+                        <span class="stat-chip-value" id="statsQA">0</span>
+                        <span class="stat-chip-label">Q&A</span>
+                    </div>
+                </div>
+
+                <!-- Notes Panel -->
+                <div class="notes-panel">
+                    <div class="notes-header">
+                        <div>
+                            <h2 class="notes-title" id="notesTitle">📋 Summary</h2>
+                            <div class="notes-subtitle" id="notesSubtitle">AI-generated</div>
+                        </div>
+                        <div class="notes-actions">
+                            <div class="note-stat" id="noteStats"></div>
+                            <div style="position:relative;display:inline-block">
+                                <button class="btn btn-ghost btn-sm" onclick="toggleLectureExportDropdown()">📥 Export
+                                    ▾</button>
+                                <div class="lecture-export-dropdown" id="lectureExportDropdown" style="display:none">
+                                    <button class="export-dd-btn" onclick="exportAs('txt')">📄 Text</button>
+                                    <button class="export-dd-btn" onclick="exportAs('md')">📑 Markdown</button>
+                                    <button class="export-dd-btn" onclick="exportAs('pdf')">📕 PDF</button>
+                                    <button class="export-dd-btn" onclick="copyNotes()">📋 Copy</button>
+                                </div>
+                            </div>
+                            <button class="btn btn-ghost btn-sm" onclick="regenerate()">🔄</button>
+                        </div>
+                    </div>
+                    <!-- Note Tabs -->
+                    <div class="notes-tabs">
+                        <button class="notes-tab active" onclick="switchNoteTab('summary', this)">📋 Summary</button>
+                        <button class="notes-tab" onclick="switchNoteTab('full', this)">📄 Full</button>
+                        <button class="notes-tab" onclick="switchNoteTab('concepts', this)">🧠 Concepts</button>
+                        <button class="notes-tab" onclick="switchNoteTab('qa', this)">❓ Q&A</button>
+                        <button class="notes-tab" onclick="switchNoteTab('mindmap', this)">🗺 Map</button>
+                    </div>
+                    <div class="notes-body" id="notesBody">
+                        <!-- Dynamically rendered by lecture.js -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clear -->
+            <button class="btn btn-ghost btn-sm" id="clearBtn"
+                style="display:none;margin-top:12px;color:var(--text-muted)" onclick="clearAll()">🗑 Clear
+                Notes</button>
+        </main>
+
+        <!-- ═══════════════════════ RIGHT SIDEBAR ═══════════════════════ -->
+        <aside class="lecture-aside">
+            <!-- Settings -->
+            <div class="aside-section">
+                <div class="aside-header">
+                    <span class="aside-title">⚙️ Settings</span>
+                </div>
+                <div class="aside-body">
+                    <div class="setting-row">
+                        <label>Language</label>
+                        <select id="langSetting" class="select-sm">
+                            <option value="English">🇬🇧 English</option>
+                            <option value="Hindi">🇮🇳 Hindi</option>
+                            <option value="Tamil">🇮🇳 Tamil</option>
+                            <option value="Telugu">🇮🇳 Telugu</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <label>Audience</label>
+                        <select id="audienceSetting" class="select-sm">
+                            <option value="Undergraduate">🎓 Undergraduate</option>
+                            <option value="Postgraduate">📐 Postgraduate</option>
+                            <option value="General">🌐 General</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export -->
+            <div class="aside-section" id="exportSection" style="display:none">
+                <div class="aside-header">
+                    <span class="aside-title">📥 Export</span>
+                </div>
+                <div class="aside-body">
+                    <div class="export-grid">
+                        <button class="export-btn" onclick="exportAs('txt')">
+                            <span class="export-icon">📄</span>
+                            <span>Text</span>
+                        </button>
+                        <button class="export-btn" onclick="exportAs('md')">
+                            <span class="export-icon">📑</span>
+                            <span>Markdown</span>
+                        </button>
+                        <button class="export-btn" onclick="exportAs('pdf')">
+                            <span class="export-icon">📕</span>
+                            <span>PDF</span>
+                        </button>
+                        <button class="export-btn" onclick="exportAs('docx')">
+                            <span class="export-icon">📘</span>
+                            <span>Word</span>
+                        </button>
+                        <button class="export-btn" onclick="exportAs('anki')">
+                            <span class="export-icon">🃏</span>
+                            <span>Anki</span>
+                        </button>
+                        <button class="export-btn" onclick="copyNotes()">
+                            <span class="export-icon">📋</span>
+                            <span>Copy</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="aside-section">
+                <div class="aside-header">
+                    <span class="aside-title">📚 History</span>
+                </div>
+                <div class="aside-body" id="historyList">
+                    <!-- Populated by lecture.js loadHistory() -->
+                    <div style="font-size:0.82rem;color:var(--text-muted);text-align:center;padding:16px">
+                        Loading lectures...
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- ── Export Modal ── -->
+    <div class="export-modal" id="exportModal" style="display:none">
+        <div class="modal-overlay" onclick="hideExportModal()"></div>
+        <div class="modal-content">
+            <h3>Export Notes</h3>
+            <div class="export-grid" style="margin-top:16px">
+                <button class="export-btn" onclick="exportAs('txt'); hideExportModal()">📄 Text</button>
+                <button class="export-btn" onclick="exportAs('md'); hideExportModal()">📑 Markdown</button>
+                <button class="export-btn" onclick="exportAs('pdf'); hideExportModal()">📕 PDF</button>
+                <button class="export-btn" onclick="exportAs('docx'); hideExportModal()">📘 Word</button>
+            </div>
+            <button class="btn btn-ghost" style="margin-top:16px;width:100%" onclick="hideExportModal()">Close</button>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/lecture.js"></script>
+</body>
+
+</html>

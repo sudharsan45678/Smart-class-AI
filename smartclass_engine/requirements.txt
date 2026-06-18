@@ -1,0 +1,11 @@
+opencv-python==4.9.0.80
+mediapipe
+SpeechRecognition
+transformers
+torch
+streamlit
+pandas
+plotly
+pyaudio
+fer
+tensorflow

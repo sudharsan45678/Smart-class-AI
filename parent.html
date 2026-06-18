@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parent Dashboard | SmartClass AI</title>
+    <meta name="description"
+        content="Track your child's classroom performance, attention scores, emotional insights, and behavior trends." />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/parent.css" />
+</head>
+
+<body class="parent-page">
+
+    <!-- ── NAVBAR ── -->
+    <nav class="navbar scrolled" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 36 36" fill="none">
+                        <rect width="36" height="36" rx="10" fill="url(#pGrad)" />
+                        <path d="M10 18 Q18 8 26 18 Q18 28 10 18Z" fill="white" opacity="0.9" />
+                        <circle cx="18" cy="18" r="4" fill="white" />
+                        <defs>
+                            <linearGradient id="pGrad" x1="0" y1="0" x2="36" y2="36">
+                                <stop offset="0%" stop-color="#6C63FF" />
+                                <stop offset="100%" stop-color="#00D4FF" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span class="brand-name">SmartClass<em>AI</em></span>
+            </a>
+            <div class="nav-actions">
+                <a href="index.html" class="btn btn-ghost">Home</a>
+                <a href="behaviour.html" class="btn btn-ghost">Teacher</a>
+                <a href="lecture.html" class="btn btn-ghost">Notes</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── MAIN ── -->
+    <main class="parent-main">
+
+        <!-- Login Panel (shown first) -->
+        <div class="login-panel" id="loginPanel">
+            <div class="login-card">
+                <div class="login-icon">👨‍👩‍👧‍👦</div>
+                <h1>Parent Dashboard</h1>
+                <p>Enter your child's roll number to view their performance insights.</p>
+                <form onsubmit="parentLogin(event)" class="login-form">
+                    <div class="input-group">
+                        <label for="rollInput">🎓 Student Roll Number</label>
+                        <input type="text" id="rollInput" placeholder="e.g. CS2024001" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg login-btn">
+                        View Dashboard
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 10h12M10 4l6 6-6 6" />
+                        </svg>
+                    </button>
+                </form>
+                <p class="login-hint">
+                    Don't have a roll number? <button class="link-btn" onclick="showAllStudents()">Browse all
+                        students</button>
+                </p>
+            </div>
+        </div>
+
+        <!-- Dashboard (hidden until login) -->
+        <div class="dashboard-container" id="dashboardContainer" style="display:none">
+
+            <!-- Student Header -->
+            <div class="student-header" id="studentHeader">
+                <div class="student-profile">
+                    <div class="student-avatar" id="studentAvatar">S</div>
+                    <div class="student-info">
+                        <h1 id="studentName">Student Name</h1>
+                        <div class="student-meta">
+                            <span class="meta-badge" id="studentClass">Class</span>
+                            <span class="meta-badge" id="studentRoll">Roll No</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-ghost btn-sm" onclick="switchStudent()">🔄 Switch Student</button>
+                </div>
+            </div>
+
+            <!-- Grade Card -->
+            <div class="grade-section" id="gradeSection">
+                <div class="grade-card">
+                    <div class="grade-circle" id="gradeCircle">
+                        <span class="grade-letter" id="gradeLetter">—</span>
+                    </div>
+                    <div class="grade-info">
+                        <h2 id="gradeLabel">Performance Grade</h2>
+                        <p id="gradeDesc">Log in to view your child's grade.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metric Cards -->
+            <div class="metric-grid" id="metricGrid">
+                <div class="parent-metric-card">
+                    <div class="pmc-icon" style="background: rgba(108, 99, 255, 0.1); color: #6C63FF">📊</div>
+                    <div class="pmc-content">
+                        <div class="pmc-value" id="pmcEngagement">—</div>
+                        <div class="pmc-label">Avg Engagement</div>
+                    </div>
+                </div>
+                <div class="parent-metric-card">
+                    <div class="pmc-icon" style="background: rgba(0, 212, 255, 0.1); color: #00D4FF">🎯</div>
+                    <div class="pmc-content">
+                        <div class="pmc-value" id="pmcAttention">—</div>
+                        <div class="pmc-label">Avg Attention</div>
+                    </div>
+                </div>
+                <div class="parent-metric-card">
+                    <div class="pmc-icon" style="background: rgba(0, 255, 179, 0.1); color: #00FFB3">🗓️</div>
+                    <div class="pmc-content">
+                        <div class="pmc-value" id="pmcSessions">—</div>
+                        <div class="pmc-label">Sessions Attended</div>
+                    </div>
+                </div>
+                <div class="parent-metric-card">
+                    <div class="pmc-icon" style="background: rgba(255, 179, 71, 0.1); color: #FFB347">📈</div>
+                    <div class="pmc-content">
+                        <div class="pmc-value" id="pmcReadings">—</div>
+                        <div class="pmc-label">Total Readings</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="charts-row">
+                <!-- Session Trend -->
+                <div class="chart-card">
+                    <h3>📈 Performance Trend</h3>
+                    <div class="chart-container">
+                        <canvas id="trendCanvas" width="500" height="220"></canvas>
+                    </div>
+                </div>
+                <!-- Emotion Distribution -->
+                <div class="chart-card">
+                    <h3>💭 Emotion Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="emotionCanvas" width="280" height="220"></canvas>
+                    </div>
+                    <div class="emotion-legend" id="emotionLegend"></div>
+                </div>
+            </div>
+
+            <!-- Insights -->
+            <div class="insights-section" id="insightsSection">
+                <h3>💡 AI Behavior Insights</h3>
+                <div class="insights-grid" id="insightsGrid">
+                    <p class="insights-empty">Insights will appear after data is loaded.</p>
+                </div>
+            </div>
+
+            <!-- Session History -->
+            <div class="session-history" id="sessionHistory">
+                <h3>📅 Recent Session History</h3>
+                <div class="session-list" id="sessionList">
+                    <p class="sessions-empty">No sessions found.</p>
+                </div>
+            </div>
+
+            <!-- Lecture Notes -->
+            <div class="lecture-notes-section" id="lectureNotesSection">
+                <h3>📚 Recent Lecture Notes</h3>
+                <div class="lecture-list" id="parentLectureList">
+                    <p class="lectures-empty">No lecture notes available yet.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Students Browser -->
+        <div class="students-browser" id="studentsBrowser" style="display:none">
+            <div class="browser-header">
+                <h2>👨‍🎓 All Students</h2>
+                <button class="btn btn-ghost btn-sm" onclick="backToLogin()">← Back to Login</button>
+            </div>
+            <div class="students-grid" id="studentsGrid">
+                <p>Loading students...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="parent-footer">
+        <p>© 2026 SmartClass AI — Parent Dashboard v2.0</p>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/parent.js"></script>
+</body>
+
+</html>

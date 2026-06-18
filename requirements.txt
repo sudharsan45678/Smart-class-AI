@@ -1,0 +1,33 @@
+# ===================================================
+# AI SmartClass Insights — Python Dependencies
+# ===================================================
+# Install all: pip install -r requirements.txt
+# ===================================================
+
+# ── Core Web Framework ──
+flask==3.1.0
+flask-cors==5.0.1
+
+# ── Computer Vision (Behaviour Analysis) ──
+opencv-python==4.9.0.80
+mediapipe>=0.10.0
+numpy>=1.24.0
+
+# ── Emotion Detection (CNN) ──
+fer>=22.5.0
+tensorflow>=2.13.0
+
+# ── Speech-to-Text ──
+SpeechRecognition>=3.10.0
+# openai-whisper             # Optional: uncomment for best accuracy
+# pyaudio                    # Optional: for microphone recording
+
+# ── Text Summarization (NLP) ──
+transformers>=4.35.0
+torch>=2.0.0
+sentencepiece>=0.1.99
+
+# ── Dashboard (Optional Streamlit) ──
+# streamlit>=1.28.0
+# pandas>=2.0.0
+# plotly>=5.15.0

@@ -1,0 +1,15 @@
+{
+  "source_directories": [
+    {
+      "import_root": ".",
+      "source": "."
+    }
+  ],
+  "search_path": [
+    "C:/Users/sudharsan/AppData/Local/Programs/Python/Python312/Lib/site-packages",
+    "C:/Users/sudharsan/AppData/Local/Programs/Python/Python312/Lib",
+    "."
+  ],
+  "ignore_all_errors": true,
+  "strict_handling_of_annotations": false
+}

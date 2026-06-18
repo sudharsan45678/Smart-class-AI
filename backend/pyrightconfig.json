@@ -1,0 +1,27 @@
+{
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Windows",
+  "venvPath": "C:/Users/sudharsan/AppData/Local/Programs/Python/Python312",
+  "pythonPath": "C:/Users/sudharsan/AppData/Local/Programs/Python/Python312/python.exe",
+  "extraPaths": [
+    "C:/Users/sudharsan/AppData/Local/Programs/Python/Python312/Lib/site-packages",
+    "C:/Users/sudharsan/AppData/Local/Programs/Python/Python312/Lib",
+    "."
+  ],
+  "include": ["."],
+  "exclude": ["__pycache__"],
+  "typeCheckingMode": "off",
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none",
+  "reportMissingTypeStubs": "none",
+  "reportUnknownMemberType": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportReturnType": "none",
+  "reportOperatorIssue": "none",
+  "reportArgumentType": "none",
+  "reportCallIssue": "none",
+  "reportIndexIssue": "none",
+  "useLibraryCodeForTypes": true,
+  "autoSearchPaths": true
+}

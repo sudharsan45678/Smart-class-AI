@@ -1,0 +1,403 @@
+/* ============================================================
+   CAMERA PANEL STYLES — Embedded in behaviour.css
+   Real-time webcam feed + face detection overlay
+   ============================================================ */
+
+/* ── Camera Panel ──────────────────────────────────────────────── */
+.camera-panel {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+}
+
+.camera-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(108, 99, 255, 0.04);
+}
+
+.camera-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.camera-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: background 0.3s;
+}
+
+.camera-dot.live {
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+}
+
+.camera-feed-wrapper {
+    position: relative;
+    background: #000;
+    aspect-ratio: 4/3;
+    max-height: 260px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.camera-feed-wrapper video,
+.camera-feed-wrapper canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.camera-feed-wrapper video {
+    transform: scaleX(-1);
+}
+
+/* mirror */
+.camera-feed-wrapper canvas {
+    transform: scaleX(-1);
+    pointer-events: none;
+}
+
+/* mirror overlay */
+
+.camera-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 20px;
+    position: relative;
+    z-index: 2;
+}
+
+.camera-placeholder .cam-icon {
+    font-size: 2.5rem;
+    animation: float 3s ease-in-out infinite;
+}
+
+.camera-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    padding: 12px 16px;
+}
+
+.cam-metric {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+}
+
+.cam-metric-val {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--cyan);
+    font-family: 'Outfit', sans-serif;
+}
+
+.cam-metric-lbl {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 3px;
+}
+
+.camera-faces-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.face-badge {
+    background: rgba(108, 99, 255, 0.15);
+    color: var(--purple-light);
+    border: 1px solid rgba(108, 99, 255, 0.3);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+/* Expression bar */
+.expr-bars {
+    padding: 0 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.expr-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+}
+
+.expr-label {
+    width: 60px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.expr-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.expr-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.expr-val {
+    width: 28px;
+    text-align: right;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+}
+
+/* ── Live Transcript Panel ─────────────────────────────────────── */
+.transcript-panel {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.transcript-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.transcript-body {
+    padding: 14px 18px;
+    min-height: 100px;
+    max-height: 180px;
+    overflow-y: auto;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    position: relative;
+}
+
+.transcript-interim {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.transcript-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 14px;
+    background: var(--purple-light);
+    animation: blink 1s infinite;
+    vertical-align: middle;
+    margin-left: 2px;
+    border-radius: 1px;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+.transcript-stats {
+    display: flex;
+    gap: 16px;
+    padding: 10px 18px;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.t-stat {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* ── Speaking indicator waveform ────────────────────────────────── */
+.speaking-wave {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 20px;
+}
+
+.speaking-wave .bar {
+    width: 3px;
+    background: var(--purple-light);
+    border-radius: 2px;
+    height: 4px;
+    transition: height 0.1s;
+}
+
+.speaking-wave.active .bar:nth-child(1) {
+    animation: sw 0.6s ease infinite 0.0s;
+}
+
+.speaking-wave.active .bar:nth-child(2) {
+    animation: sw 0.6s ease infinite 0.1s;
+}
+
+.speaking-wave.active .bar:nth-child(3) {
+    animation: sw 0.6s ease infinite 0.2s;
+}
+
+.speaking-wave.active .bar:nth-child(4) {
+    animation: sw 0.6s ease infinite 0.15s;
+}
+
+.speaking-wave.active .bar:nth-child(5) {
+    animation: sw 0.6s ease infinite 0.05s;
+}
+
+@keyframes sw {
+
+    0%,
+    100% {
+        height: 3px
+    }
+
+    50% {
+        height: 16px
+    }
+}
+
+/* ── Camera toggle btn ──────────────────────────────────────────── */
+.btn-camera {
+    background: rgba(108, 99, 255, 0.15);
+    border: 1px solid rgba(108, 99, 255, 0.3);
+    color: var(--purple-light);
+    border-radius: 10px;
+    padding: 7px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-camera:hover {
+    background: rgba(108, 99, 255, 0.25);
+}
+
+.btn-camera.active {
+    background: rgba(255, 107, 107, 0.15);
+    border-color: rgba(255, 107, 107, 0.4);
+    color: var(--red);
+}
+
+/* ── AI Insights badge ──────────────────────────────────────────── */
+.ai-insight-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, rgba(108, 99, 255, 0.15), rgba(0, 212, 255, 0.1));
+    border: 1px solid rgba(108, 99, 255, 0.25);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.72rem;
+    color: var(--purple-light);
+    font-weight: 600;
+}
+
+/* ── Fullscreen Camera ───────────────────────────────────────── */
+.camera-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999 !important;
+    border-radius: 0 !important;
+    background: #000 !important;
+    margin: 0 !important;
+}
+
+.camera-fullscreen .camera-feed-wrapper {
+    max-height: none !important;
+    height: calc(100vh - 120px) !important;
+    aspect-ratio: auto !important;
+}
+
+.camera-fullscreen .camera-feed-wrapper video,
+.camera-fullscreen .camera-feed-wrapper canvas {
+    object-fit: contain !important;
+}
+
+.camera-fullscreen .camera-header {
+    background: rgba(0, 0, 0, 0.8) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.camera-fullscreen .camera-metrics {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 10;
+}
+
+.btn-fullscreen {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-fullscreen:hover {
+    background: rgba(108, 99, 255, 0.2);
+    color: var(--purple-light);
+}
